@@ -1,2 +1,2 @@
 # plib_fading_doors
-Fading Door for a mentally healthy person
+Fading Door for a mentally healthy persons
