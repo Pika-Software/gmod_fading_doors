@@ -155,6 +155,13 @@ if CLIENT then
             local openCvarValue = GetConVar( "fd_sound_open" ):GetString()
             openSounds:SetValue( (openCvarValue == "") and "#tool.fading_doors.none" or openCvarValue )
 
+            timer.Create("fd_sound_open", 0.25, 0, function()
+                if IsValid( openSounds ) then
+                    local openCvarValue = GetConVar( "fd_sound_open" ):GetString()
+                    openSounds:SetValue( (openCvarValue == "") and "#tool.fading_doors.none" or openCvarValue )
+                end
+            end)
+
             function openSounds:OnSelect( index, value )
                 RunConsoleCommand( "fd_sound_open", ((value == "#tool.fading_doors.none") and "" or value ) )
             end
@@ -179,6 +186,13 @@ if CLIENT then
 			local closeCvarValue = GetConVar( "fd_sound_close" ):GetString()
 			closeSounds:SetValue( (closeCvarValue == "") and "#tool.fading_doors.none" or closeCvarValue )
 
+            timer.Create("fd_sound_close", 0.25, 0, function()
+                if IsValid( closeSounds ) then
+                    local closeCvarValue = GetConVar( "fd_sound_close" ):GetString()
+                    closeSounds:SetValue( (closeCvarValue == "") and "#tool.fading_doors.none" or closeCvarValue )
+                end
+            end)
+
             function closeSounds:OnSelect( index, value )
                 RunConsoleCommand( "fd_sound_close", ((value == "#tool.fading_doors.none") and "" or value ) )
             end
@@ -202,13 +216,33 @@ if CLIENT then
 
 	function TOOL:RightClick(tr)
         if tr.HitWorld then return false end
-        return IsValid( tr.Entity ) and tr.Entity:IsProp()
+        return IsValid( tr.Entity ) and tr.Entity:IsFadingDoor()
 	end
 
 	function TOOL:Reload(tr)
         if tr.HitWorld then return false end
-        return IsValid( tr.Entity ) and tr.Entity:IsProp()
+        return IsValid( tr.Entity ) and tr.Entity:IsFadingDoor()
 	end
+
+    net.Receive( "js.fd_sync_settings", function()
+        local fd_material = net.ReadString()
+        if (fd_material != "") then
+            RunConsoleCommand("fd_material", fd_material)
+        end
+
+        local fd_button = net.ReadString()
+        if (fd_button != "") then
+            RunConsoleCommand("fd_button", fd_button)
+        end
+
+        local fd_toggle = net.ReadString()
+        if (fd_toggle != "") then
+            RunConsoleCommand("fd_toggle", fd_toggle)
+        end
+
+        RunConsoleCommand("fd_sound_open", net.ReadString())
+        RunConsoleCommand("fd_sound_close", net.ReadString())
+    end)
 
 else
     fd_list = fd_list or {}
@@ -266,13 +300,34 @@ else
         return false
     end
 
+    util.AddNetworkString( "js.fd_sync_settings" )
+    function TOOL:CopyData( ent )
+        local data = ent["fading_door"]
+        if (data == nil) then return false end
+
+        local ply = self:GetOwner()
+        if IsValid( ply ) then
+
+            net.Start("js.fd_sync_settings")
+                net.WriteString( data["Material"] )
+                net.WriteString( tostring( data["Key"] ) )
+                net.WriteString( (data["IsToggle"] == true) and "1" or "0" )
+                net.WriteString( data["Sounds"]["Open"] )
+                net.WriteString( data["Sounds"]["Close"] )
+            net.Send( ply )
+
+            return true
+        end
+
+        return false
+    end
+
     function TOOL:RightClick( tr )
         if tr.HitWorld then return false end
 
         local ent = tr.Entity
         if IsValid( ent ) and ent:IsFadingDoor() then
-
-            return true
+            return self:CopyData( ent )
         end
 
         return false
@@ -331,7 +386,7 @@ else
         if tr.HitWorld then return false end
 
         local ent = tr.Entity
-        if IsValid( ent ) and ent:IsFadingDoor()then
+        if IsValid( ent ) and ent:IsFadingDoor() then
             return self:RemoveDoor( ent )
         end
 
@@ -381,6 +436,8 @@ else
                 ent:EmitSound( doorSounds["Close"][ closeSound ] )
             end
         end
+
+        data["Toggled"] = state
     end
 
     hook.Add("PlayerButtonToggle", "FadingDoor_Keys", function(ply, key, bool)
@@ -398,11 +455,7 @@ else
                         if (data["Key"] == key) then
                             if (data["IsToggle"] == true) then
                                 if (bool == true) then continue end
-
-                                local newState = not data["Toggled"]
-                                data["Toggled"] = newState
-
-                                toggleFadingDoor( ent, data, newState )
+                                toggleFadingDoor( ent, data, not data["Toggled"] )
                             else
                                 toggleFadingDoor( ent, data, bool )
                             end
@@ -420,5 +473,5 @@ local ENTITY = FindMetaTable("Entity")
 if not ENTITY then return end
 
 function ENTITY:IsFadingDoor()
-    return self:GetNWBool("fading_door", false)
+    return SERVER and (self["fading_door"] != nil) or self:GetNWBool("fading_door", false)
 end
