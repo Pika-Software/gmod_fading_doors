@@ -29,10 +29,6 @@ for tag, text in pairs( en ) do
 	PLang:AddPhrase(text, "en", tag_prefix .. tag)
 end
 
-for tag, text in pairs( ru ) do
-	PLang:AddPhrase(text, "ru", tag_prefix .. tag)
-end
-
 hook.Add("LanguageChanged", "PLang:fading_doors", function(_, lang)
 	if (lang == "ru") then
 		for tag, text in pairs( ru ) do
