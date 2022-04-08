@@ -24,18 +24,13 @@ local ru = {
 }
 
 local tag_prefix = "tool.fading_doors."
-
-for tag, text in pairs( en ) do
-	PLang:AddPhrase(text, "en", tag_prefix .. tag)
+for placeholder, fulltext in pairs( ru ) do
+    language.Add( tag_prefix .. placeholder, fulltext, "ru" )
 end
 
-hook.Add("LanguageChanged", "PLang:fading_doors", function(_, lang)
-	if (lang == "ru") then
-		for tag, text in pairs( ru ) do
-			PLang:AddPhrase(text, lang, tag_prefix .. tag)
-		end
-	end
-end)
+for placeholder, fulltext in pairs( en ) do
+    language.Add( tag_prefix .. placeholder, fulltext, "en" )
+end
 
 -- Convars
 local clientConVars = {
@@ -140,7 +135,7 @@ if CLIENT then
             local openSounds = vgui.Create("CtrlListBox", self)
             openSounds:AddOption("#tool.fading_doors.none", {"none"})
 
-            for name, path in pairs( doorSounds["Open"] ) do
+            for name, path in pairs( doorSounds.Open ) do
                 openSounds:AddOption( name, {path} )
             end
 
@@ -172,7 +167,7 @@ if CLIENT then
         --  Close Sounds List
             local closeSounds = vgui.Create("CtrlListBox", self)
             closeSounds:AddOption("#tool.fading_doors.none", {"none"})
-            for name, path in pairs( doorSounds["Close"] ) do
+            for name, path in pairs( doorSounds.Close ) do
                 closeSounds:AddOption( name, {path} )
             end
 
@@ -245,48 +240,48 @@ if CLIENT then
     end)
 
 else
-    fd_list = fd_list or {}
 
     function TOOL:CreateDoor( ent )
         local ply = self:GetOwner()
         if IsValid( ply ) and ply:Alive() then
-            if (ent["fading_door"] == nil) then
+            if (ent.fading_door == nil) then
                 ent:SetNWBool("fading_door", true)
-                ent["fading_door"] = {
+                ent.fading_door = {
                     -- Base Data
-                    ["ID"] 			= table.insert(fd_list, ent),
-                    ["SteamID"] 	= ply:SteamID(),
                     ["Toggled"]     = false,
 
                     -- Material
-                    ["Material"] 	= ply:GetInfo("fd_material", clientConVars["material"]),
+                    ["Material"] 	= ply:GetInfo("fd_material", clientConVars.material),
 
                     -- Key
-                    ["Key"] 	 	= ply:GetInfoNum("fd_button", clientConVars["button"]),
-                    ["IsToggle"] 	= tobool( ply:GetInfoNum("fd_toggle", clientConVars["toggle"]) ),
+                    ["Key"] 	 	= ply:GetInfoNum("fd_button", clientConVars.button),
+                    ["IsToggle"] 	= tobool( ply:GetInfoNum("fd_toggle", clientConVars.toggle) ),
 
                     -- Sounds
                     ["Sounds"]		= {
-                        ["Open"] 	= ply:GetInfo("fd_sound_open", clientConVars["sound_open"]),
-                        ["Close"]	= ply:GetInfo("fd_sound_close", clientConVars["sound_close"])
+                        ["Open"] 	= ply:GetInfo("fd_sound_open", clientConVars.sound_open),
+                        ["Close"]	= ply:GetInfo("fd_sound_close", clientConVars.sound_close)
                     }
                 }
             else
-                ent["fading_door"] = table.Merge(ent["fading_door"], {
+                ent.fading_door = table.Merge(ent.fading_door, {
                     -- Material
-                    ["Material"] 	= ply:GetInfo("fd_material", clientConVars["material"]),
+                    ["Material"] 	= ply:GetInfo("fd_material", clientConVars.material),
 
                     -- Key
-                    ["Key"] 	 	= ply:GetInfoNum("fd_button", clientConVars["button"]),
-                    ["IsToggle"] 	= tobool( ply:GetInfoNum("fd_toggle", clientConVars["toggle"]) ),
+                    ["Key"] 	 	= ply:GetInfoNum("fd_button", clientConVars.button),
+                    ["IsToggle"] 	= tobool( ply:GetInfoNum("fd_toggle", clientConVars.toggle) ),
 
                     -- Sounds
                     ["Sounds"]		= {
-                        ["Open"] 	= ply:GetInfo("fd_sound_open", clientConVars["sound_open"]),
-                        ["Close"]	= ply:GetInfo("fd_sound_close", clientConVars["sound_close"])
+                        ["Open"] 	= ply:GetInfo("fd_sound_open", clientConVars.sound_open),
+                        ["Close"]	= ply:GetInfo("fd_sound_close", clientConVars.sound_close)
                     }
                 })
             end
+
+            ent.fading_door.Up = numpad.OnUp( ply, ent.fading_door.Key, "Fading_DoorUp", ent )
+            ent.fading_door.Down = numpad.OnDown( ply, ent.fading_door.Key, "Fading_DoorDown", ent )
 
             local phys = ent:GetPhysicsObject()
             if IsValid( phys ) then
@@ -302,18 +297,18 @@ else
 
     util.AddNetworkString( "js.fd_sync_settings" )
     function TOOL:CopyData( ent )
-        local data = ent["fading_door"]
+        local data = ent.fading_door
         if (data == nil) then return false end
 
         local ply = self:GetOwner()
         if IsValid( ply ) then
 
             net.Start("js.fd_sync_settings")
-                net.WriteString( data["Material"] )
-                net.WriteString( tostring( data["Key"] ) )
-                net.WriteString( (data["IsToggle"] == true) and "1" or "0" )
-                net.WriteString( data["Sounds"]["Open"] )
-                net.WriteString( data["Sounds"]["Close"] )
+                net.WriteString( data.Material )
+                net.WriteString( tostring( data.Key ) )
+                net.WriteString( (data.IsToggle == true) and "1" or "0" )
+                net.WriteString( data.Sounds.Open )
+                net.WriteString( data.Sounds.Close )
             net.Send( ply )
 
             return true
@@ -345,33 +340,35 @@ else
     end
 
     function TOOL:RemoveDoor( ent )
-        local data = ent["fading_door"]
-        if (data == nil) then return false end
+        local data = ent.fading_door
+        if (data) then
 
-        local id = data["ID"]
-        if (id == nil) then
-            ent:Remove()
-            return false
+            -- Collision Group Return
+            local oldCollisionGroup = data.OldCollisionGroup
+            if (oldCollisionGroup != nil) then
+                ent:SetCollisionGroup( oldCollisionGroup )
+                data.OldCollisionGroup = nil
+            end
+
+            -- Material Return
+            local oldMaterial = data.OldMaterial
+            if (oldMaterial != nil) then
+                ent:SetMaterial( oldMaterial )
+                data.OldMaterial = nil
+            end
+
+            if (data.Up) then
+                numpad.Remove( data.Up )
+            end
+
+            if (data.Down) then
+                numpad.Remove( data.Down )
+            end
+
+            ent.fading_door = nil
         end
 
-        -- Collision Group Return
-        local oldCollisionGroup = data["OldCollisionGroup"]
-        if (oldCollisionGroup != nil) then
-            ent:SetCollisionGroup( oldCollisionGroup )
-            data["OldCollisionGroup"] = nil
-        end
-
-        -- Material Return
-        local oldMaterial = data["OldMaterial"]
-        if (oldMaterial != nil) then
-            ent:SetMaterial( oldMaterial )
-            data["OldMaterial"] = nil
-        end
-
-        table.remove(fd_list, id)
-
-        ent:SetNWBool("fading_door", false)
-        ent["fading_door"] = nil
+        ent:SetNWBool( "fading_door", false )
 
         local phys = ent:GetPhysicsObject()
         if IsValid( phys ) then
@@ -399,79 +396,79 @@ else
     end)
 
     local function toggleFadingDoor( ent, data, state )
-        if (state == true) then
+        if (state) then
             -- Collision Group Save and Change
-            data["OldCollisionGroup"] = ent:GetCollisionGroup()
+            data.OldCollisionGroup = ent:GetCollisionGroup()
             ent:SetCollisionGroup( 12 )
 
             -- Material Save and Change
-            data["OldMaterial"] = ent:GetMaterial()
-            ent:SetMaterial( data["Material"] )
+            data.OldMaterial = ent:GetMaterial()
+            ent:SetMaterial( data.Material )
 
             ent:DrawShadow( false )
 
-            local openSound = data["Sounds"]["Open"]
+            local openSound = data.Sounds.Open
             if (openSound != "") then
-                ent:EmitSound( doorSounds["Open"][ openSound ] )
+                ent:EmitSound( doorSounds.Open[ openSound ] )
             end
         else
             -- Collision Group Return
-            local oldCollisionGroup = data["OldCollisionGroup"]
+            local oldCollisionGroup = data.OldCollisionGroup
             if (oldCollisionGroup != nil) then
                 ent:SetCollisionGroup( oldCollisionGroup )
-                data["OldCollisionGroup"] = nil
+                data.OldCollisionGroup = nil
             end
 
             -- Material Return
-            local oldMaterial = data["OldMaterial"]
+            local oldMaterial = data.OldMaterial
             if (oldMaterial != nil) then
                 ent:SetMaterial( (oldMaterial == "") and nil or oldMaterial )
-                data["OldMaterial"] = nil
+                data.OldMaterial = nil
             end
 
             ent:DrawShadow( true )
 
-            local closeSound = data["Sounds"]["Close"]
+            local closeSound = data.Sounds.Close
             if (closeSound != "") then
-                ent:EmitSound( doorSounds["Close"][ closeSound ] )
+                ent:EmitSound( doorSounds.Close[ closeSound ] )
             end
         end
 
-        data["Toggled"] = state
+        data.Toggled = state
     end
 
-    hook.Add("PlayerButtonToggle", "FadingDoor_Keys", function(ply, key, bool)
+    local function toggle( pressed, ply, ent )
         if (deadUse == true) or ply:Alive() then
-            for num, ent in ipairs( fd_list ) do
-                if IsValid( ent ) then
-                    local data = ent["fading_door"]
-                    if (data == nil) then
-                        table.remove(fd_list, num)
-                        ent:Remove()
-                        continue
-                    end
+            if IsValid( ent ) then
+                local data = ent.fading_door
+                if (data == nil) then
+                    ent:Remove()
+                    return
+                end
 
-                    if (data["SteamID"] == ply:SteamID()) then
-                        if (data["Key"] == key) then
-                            if (data["IsToggle"] == true) then
-                                if (bool == true) then continue end
-                                toggleFadingDoor( ent, data, not data["Toggled"] )
-                            else
-                                toggleFadingDoor( ent, data, bool )
-                            end
-                        end
-                    end
+                if (data.IsToggle) then
+                    if (pressed) then return end
+                    toggleFadingDoor( ent, data, not data.Toggled )
                 else
-                    table.remove(fd_list, num)
+                    toggleFadingDoor( ent, data, pressed )
                 end
             end
         end
+    end
+
+    numpad.Register("Fading_DoorDown", function( ... )
+        toggle( true, ... )
     end)
+
+    numpad.Register("Fading_DoorUp", function( ... )
+        toggle( false, ... )
+    end)
+
 end
 
-local ENTITY = FindMetaTable("Entity")
-if not ENTITY then return end
-
-function ENTITY:IsFadingDoor()
-    return SERVER and (self["fading_door"] != nil) or self:GetNWBool("fading_door", false)
+do
+    local ENTITY = FindMetaTable("Entity")
+    function ENTITY:IsFadingDoor()
+        return self:GetNWBool( "fading_door", false )
+    end
 end
