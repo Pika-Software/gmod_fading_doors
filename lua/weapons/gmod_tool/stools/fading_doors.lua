@@ -1,5 +1,5 @@
-TOOL["Name"] = "#tool.fading_doors.name"
-TOOL["Category"] = "Construction"
+TOOL.Name = "#tool.fading_doors.name"
+TOOL.Category = "Construction"
 
 local en = {
     ["name"] 	= "Fading Door",
@@ -219,24 +219,24 @@ if CLIENT then
         return IsValid( tr.Entity ) and tr.Entity:IsFadingDoor()
 	end
 
-    net.Receive( "js.fd_sync_settings", function()
+    net.Receive( "fading_doors_sync", function()
         local fd_material = net.ReadString()
         if (fd_material != "") then
-            RunConsoleCommand("fd_material", fd_material)
+            RunConsoleCommand( "fd_material", fd_material )
         end
 
         local fd_button = net.ReadString()
         if (fd_button != "") then
-            RunConsoleCommand("fd_button", fd_button)
+            RunConsoleCommand( "fd_button", fd_button )
         end
 
         local fd_toggle = net.ReadString()
         if (fd_toggle != "") then
-            RunConsoleCommand("fd_toggle", fd_toggle)
+            RunConsoleCommand( "fd_toggle", fd_toggle )
         end
 
-        RunConsoleCommand("fd_sound_open", net.ReadString())
-        RunConsoleCommand("fd_sound_close", net.ReadString())
+        RunConsoleCommand( "fd_sound_open", net.ReadString() )
+        RunConsoleCommand( "fd_sound_close", net.ReadString() )
     end)
 
 else
@@ -295,7 +295,7 @@ else
         return false
     end
 
-    util.AddNetworkString( "js.fd_sync_settings" )
+    util.AddNetworkString( "fading_doors_sync" )
     function TOOL:CopyData( ent )
         local data = ent.fading_door
         if (data == nil) then return false end
@@ -303,7 +303,7 @@ else
         local ply = self:GetOwner()
         if IsValid( ply ) then
 
-            net.Start("js.fd_sync_settings")
+            net.Start("fading_doors_sync")
                 net.WriteString( data.Material )
                 net.WriteString( tostring( data.Key ) )
                 net.WriteString( (data.IsToggle == true) and "1" or "0" )
