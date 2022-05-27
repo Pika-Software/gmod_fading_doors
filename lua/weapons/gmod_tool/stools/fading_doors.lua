@@ -1,35 +1,39 @@
 TOOL.Name = "#tool.fading_doors.name"
 TOOL.Category = "Construction"
 
-local en = {
-    ["name"] 	= "Fading Door",
-    ["desc"] 	= "Makes anything into a fadable door",
-    ["0"] 	= "Left click to make it a fading door. Right click to copy data. Reload to remove fading door.",
+if (CLIENT) then
 
-    ["button"]  = "Button",
-    ["close"]   = "Close Sound:",
-    ["open"]    = "Open Sound:",
-    ["none"] 	= "None"
-}
+    local en = {
+        ["name"] 	= "Fading Door",
+        ["desc"] 	= "Makes anything into a fadable door",
+        ["0"] 	= "Left click to make it a fading door. Right click to copy data. Reload to remove fading door.",
 
-local ru = {
-    ["name"] 	= "Fading Door",
-	["desc"] 	= "Превращает что угодно в исчезающую дверь",
-	["0"] 	= "Щелкните левой кнопкой мыши, чтобы сделать это исчезающей дверью. Щелкните правой кнопкой мыши, чтобы скопировать данные. Перезарядка, чтобы удалить исчезающую дверь.",
+        ["button"]  = "Button",
+        ["close"]   = "Close Sound:",
+        ["open"]    = "Open Sound:",
+        ["none"] 	= "None"
+    }
 
-    ["button"]  = "Кнопка",
-    ["close"]   = "Звук Закрытия:",
-    ["open"]    = "Звук Открытия:",
-    ["none"] 	= "Отсутствует"
-}
+    local ru = {
+        ["name"] 	= "Fading Door",
+        ["desc"] 	= "Превращает что угодно в исчезающую дверь",
+        ["0"] 	= "Щелкните левой кнопкой мыши, чтобы сделать это исчезающей дверью. Щелкните правой кнопкой мыши, чтобы скопировать данные. Перезарядка, чтобы удалить исчезающую дверь.",
 
-local tag_prefix = "tool.fading_doors."
-for placeholder, fulltext in pairs( ru ) do
-    language.Add( tag_prefix .. placeholder, fulltext, "ru" )
-end
+        ["button"]  = "Кнопка",
+        ["close"]   = "Звук Закрытия:",
+        ["open"]    = "Звук Открытия:",
+        ["none"] 	= "Отсутствует"
+    }
 
-for placeholder, fulltext in pairs( en ) do
-    language.Add( tag_prefix .. placeholder, fulltext, "en" )
+    local tag_prefix = "tool.fading_doors."
+    for placeholder, fulltext in pairs( ru ) do
+        language.Add( tag_prefix .. placeholder, fulltext, "ru" )
+    end
+
+    for placeholder, fulltext in pairs( en ) do
+        language.Add( tag_prefix .. placeholder, fulltext, "en" )
+    end
+
 end
 
 -- Convars
@@ -115,7 +119,7 @@ for name, tbl in pairs( doorSounds ) do
     doorSounds[ name ] = newTbl
 end
 
-if CLIENT then
+if (CLIENT) then
 	function TOOL:BuildCPanel()
         for tag, default in pairs( clientConVars ) do
             CreateClientConVar("fd_" .. tag, tostring( default ), true, true)
